@@ -21,6 +21,7 @@ services:
 
   app1:
     build: ./app
+    hostname: app1
     environment:
       APP_PORT: "8080"
       DB_HOST: db
@@ -37,6 +38,7 @@ services:
 
   app2:
     build: ./app
+    hostname: app2
     environment:
       APP_PORT: "8080"
       DB_HOST: db
