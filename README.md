@@ -32,8 +32,9 @@ persistente e stack de observabilidade (Prometheus + Grafana).
 | `nginx`      | nginx:alpine            | **8080 → 80** | Proxy reverso + load balancer (round-robin) |
 | `app1`/`app2`| build `./app` (scratch) | —             | API financeira em Go, idênticas |
 | `db`         | postgres:17-alpine      | — (interno)   | Banco com persistência em volume |
+| `cadvisor`   | cadvisor:v0.49.1        | — (interno)   | Métricas de recurso por contêiner (CPU/mem/rede) |
 | `prometheus` | prom/prometheus         | — (interno)   | Coleta de métricas |
-| `grafana`    | grafana/grafana         | **3000**      | Visualização (dashboard provisionado) |
+| `grafana`    | grafana/grafana         | **3000**      | Visualização (dashboards provisionados) |
 
 > **Banco de dados nunca exposto:** `db` não declara `ports:`, então só é
 > acessível dentro da rede `appnet`. O único ponto de entrada da aplicação é o
@@ -130,13 +131,20 @@ instâncias recebendo POSTs concorrentes via load balancer.
   - `http_request_duration_seconds` (histograma)
   - `transactions_total{type,result}`
   - métricas de runtime do Go / processo (automáticas)
-- **Prometheus** coleta de `app1:8080` e `app2:8080` (e dele mesmo) a cada 15s.
+- **Recursos por contêiner** (`cAdvisor`): expõe CPU, memória, rede e disco de
+  **todos** os contêineres (não só das apps) em formato Prometheus — é o
+  "`docker stats` dentro do Grafana".
+- **Prometheus** coleta de `app1:8080`, `app2:8080`, `cadvisor:8080` (e dele
+  mesmo) a cada 15s.
 - **Grafana** em <http://localhost:3000> (**admin / admin**). O datasource
-  Prometheus e o dashboard *Finance App Overview* já vêm provisionados, com:
-  - **Request rate per instance** — visualiza o load balancer ao vivo (app1 vs app2);
-  - **Request latency heatmap** — distribuição de latência ao longo do tempo;
-  - **Success rate (2xx)** e **Rejection rate (422)** — gauges de saúde;
-  - request rate / p95 por rota, transações por tipo/resultado, runtime do Go.
+  Prometheus e dois dashboards já vêm provisionados:
+  - *Finance App Overview*:
+    - **Request rate per instance** — visualiza o load balancer ao vivo (app1 vs app2);
+    - **Request latency heatmap** — distribuição de latência ao longo do tempo;
+    - **Success rate (2xx)** e **Rejection rate (422)** — gauges de saúde;
+    - request rate / p95 por rota, transações por tipo/resultado, runtime do Go.
+  - *Container Resources (cAdvisor)*: CPU, memória (working set) e rede (RX/TX)
+    **por contêiner** — para o monitoramento de recursos sob carga.
 
 ## Gerador de carga (`loadgen/`)
 
